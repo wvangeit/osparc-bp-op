@@ -66,8 +66,13 @@ class FileMap:
             json.dump(params, input_file, indent=4)
 
         while True:
-            logger.info(
-                f'Waiting for output file: {self.output_file_path.resolve()}')
+            poll_counter = 0
+
+            if poll_counter % 20 == 0:
+                logger.info(
+                    'Waiting for output file: '
+                    f'{self.output_file_path.resolve()}')
+
             if self.output_file_path.exists():
                 with open(self.output_file_path) as output_file:
                     objs = json.load(output_file)
@@ -77,6 +82,7 @@ class FileMap:
                 return objs
             else:
                 time.sleep(POLLING_WAIT)
+                poll_counter += 1
 
     def map_function(self, *map_input):
         _ = map_input[0]

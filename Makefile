@@ -5,4 +5,4 @@ test: clean
 	@mkdir -p tests/test-outputs/output_1/
 	@pip install -qr requirements.txt
 	@pytest
-	@# pytest -s --log-cli-level=INFO
+	#pytest -s --log-cli-level=INFO
