@@ -1,37 +1,48 @@
+import os
 import pathlib
 import time
 import json
 
 import bluepyopt as bpopt
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("Optimizer")
+
+POLLING_WAIT = 1  # second
+
 
 def main():
     """Main"""
 
-    self.main_inputs_dir = pathlib.Path(
+    main_inputs_dir = pathlib.Path(
         os.environ["DY_SIDECAR_PATH_INPUTS"])
-    self.main_outputs_dir = pathlib.Path(
+    main_outputs_dir = pathlib.Path(
         os.environ["DY_SIDECAR_PATH_OUTPUTS"])
 
-    map = FileMap(self.main_inputs_dir / 'input_2' / 'params.json'),
-            self.main_outputs_dir / 'output_1' / pathlib.Path('objs.json'))
+    objs_file_path = main_inputs_dir / 'input_2' / 'objs.json'
+    params_file_path = main_outputs_dir / 'output_1' / 'params.json'
 
-    optimizer=Optimizer(map = map)
-    optimizer.start()
+    map_function = FileMap(params_file_path, objs_file_path).map_function
+
+    optimizer = Optimizer(map=map_function)
+    final_pop = optimizer.start()
+    return final_pop
 
 
 class DummyEvaluator(bpopt.evaluators.Evaluator):
 
+    """
+    This evaluator is only made to pass to bpopt, evaluations are
+    intercepted by the map
+    """
 
-"""This evaluator is only made to pass to bpopt, evaluations are intercepted by
-the map""""
-
-   def init_simulator_and_evaluate_with_lists(
-            self, param_list = None, target = 'scores'):
+    def init_simulator_and_evaluate_with_lists(
+            self, param_list=None, target='scores'):
         return self.evaluate_with_lists(
-            param_list = param_list, target = target)
+            param_list=param_list, target=target)
 
-    def evaluate_with_lists(self, param_list = None, target = 'scores'):
+    def evaluate_with_lists(self, param_list=None, target='scores'):
         """Run evaluation with lists as input and outputs"""
 
         print(f"Evaluating with lists: {param_list}")
@@ -43,8 +54,8 @@ class FileMap:
 
     def __init__(self, input_file_path,
                  output_file_path):
-        self.input_file_path=input_file_path
-        self.output_file_path=output_file_path
+        self.input_file_path = input_file_path
+        self.output_file_path = output_file_path
 
     def evaluate(self, params):
 
@@ -52,20 +63,20 @@ class FileMap:
             self.output_file_path.unlink()
 
         with open(self.input_file_path, 'w') as input_file:
-            json.dump(params, input_file, indent = 4)
+            json.dump(params, input_file, indent=4)
 
         while True:
-            print(
+            logger.info(
                 f'Waiting for output file: {self.output_file_path.resolve()}')
             if self.output_file_path.exists():
                 with open(self.output_file_path) as output_file:
                     objs = json.load(output_file)
                 self.output_file_path.unlink()
                 self.input_file_path.unlink()
-                print('Returning objectives')
+                logging.info(f'Filemap returning objectives {objs}')
                 return objs
             else:
-                time.sleep(10)
+                time.sleep(POLLING_WAIT)
 
     def map_function(self, *map_input):
         _ = map_input[0]
@@ -99,7 +110,9 @@ class Optimizer:
             map_function=self.map)
 
         final_pop, hall_of_fame, logs, hist = optimisation.run(max_ngen=10)
-        print(f"Optimization done: {final_pop}")
+        logger.info(f"Optimization done: {final_pop}")
+
+        return final_pop
 
 
 if __name__ == '__main__':
