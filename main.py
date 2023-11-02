@@ -62,6 +62,8 @@ class FileMap:
         if self.output_file_path.exists():
             self.output_file_path.unlink()
 
+        logger.info(f'Writing params list {params} to '
+                    f'{self.input_file_path.resolve()}')
         with open(self.input_file_path, 'w') as input_file:
             json.dump(params, input_file, indent=4)
 
@@ -69,9 +71,8 @@ class FileMap:
 
         while True:
             if poll_counter % 20 == 0:
-                print(poll_counter)
                 logger.info(
-                    'Waiting for output file: '
+                    'Waiting for objectives file: '
                     f'{self.output_file_path.resolve()}')
 
             if self.output_file_path.exists():
@@ -109,7 +110,7 @@ class Optimizer:
         self.map = map
 
     def start(self):
-        print("Starting optimization")
+        logger.info("Starting optimization")
 
         optimisation = bpopt.optimisations.DEAPOptimisation(
             evaluator=self.evaluator,
