@@ -65,10 +65,11 @@ class FileMap:
         with open(self.input_file_path, 'w') as input_file:
             json.dump(params, input_file, indent=4)
 
-        while True:
-            poll_counter = 0
+        poll_counter = 0
 
+        while True:
             if poll_counter % 20 == 0:
+                print(poll_counter)
                 logger.info(
                     'Waiting for output file: '
                     f'{self.output_file_path.resolve()}')
